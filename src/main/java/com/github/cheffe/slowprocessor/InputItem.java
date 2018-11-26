@@ -3,7 +3,7 @@ package com.github.cheffe.slowprocessor;
 import lombok.Data;
 
 @Data
-class InputItem {
+public class InputItem {
 
   private int id;
   private String title;
