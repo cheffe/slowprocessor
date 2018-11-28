@@ -1,11 +1,13 @@
 package com.github.cheffe.slowprocessor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -17,6 +19,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.springframework.batch.core.ExitStatus.COMPLETED;
 
+@Slf4j
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class SlowProcessorApplicationTests {
@@ -25,15 +28,27 @@ public class SlowProcessorApplicationTests {
   private JobLauncherTestUtils jobLauncherTestUtils;
 
   @Autowired
-  @Qualifier("loadCSV")
-  private Job loadCSV;
+  @Qualifier("loadCSVwithPMC")
+  private Job loadCSVwithPMC;
 
   @Test
-  public void loadCSV()throws Exception {
-    jobLauncherTestUtils.setJob(loadCSV);
+  public void loadCSVwithPMC()throws Exception {
+    jobLauncherTestUtils.setJob(loadCSVwithPMC);
     JobParameters jobParameters = new JobParametersBuilder().toJobParameters();
     JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
     assertThat(jobExecution.getExitStatus(), is(COMPLETED));
-  }
 
+    int write = 0;
+    int read = 0;
+    int commit = 0;
+    for(StepExecution stepExecution : jobExecution.getStepExecutions()) {
+      write += stepExecution.getWriteCount();
+      read += stepExecution.getReadCount();
+      stepExecution.getCommitCount();
+    }
+    log.info("##### statistics #####");
+    log.info("#####   read: {}", read);
+    log.info("#####  write: {}", write);
+    log.info("#######################");
+  }
 }

@@ -11,4 +11,7 @@ class OutputItem {
   private List<String> words;
   private List<String> tags;
 
+
+  public static class QueueEnd extends OutputItem {
+  }
 }

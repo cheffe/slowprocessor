@@ -12,14 +12,14 @@ class TaggingService {
 
   private int tagNo = 1;
 
-  List<TaggingResponse> analyze(String... texts) throws InterruptedException {
-    log.debug("analyze {} texts for tagging", texts.length);
+  List<TaggingResponse> analyze(List<InputItem> items) throws InterruptedException {
+    log.debug("analyze {} items for tagging", items.size());
     Thread.sleep(6000);
-    List<TaggingResponse> responses = new ArrayList<>(texts.length);
-    for (String text : texts) {
-      log.trace("analyze text '{}'", text);
+    List<TaggingResponse> responses = new ArrayList<>(items.size());
+    for (InputItem item : items) {
+      log.trace("analyze item '{}'", item);
       TaggingResponse response = new TaggingResponse();
-      response.setWords(Arrays.asList(text.split(" ")));
+      response.setWords(Arrays.asList(item.getText().split(" ")));
 
       List<String> tags = new ArrayList<>(2);
       tags.add("tag " + tagNo);

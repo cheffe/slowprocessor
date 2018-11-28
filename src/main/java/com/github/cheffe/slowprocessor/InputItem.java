@@ -9,4 +9,7 @@ public class InputItem {
   private String title;
   private String text;
 
+  public static class QueueEnd extends InputItem {
+  }
+
 }
