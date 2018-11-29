@@ -40,15 +40,15 @@ public class SlowProcessorApplicationTests {
 
     int write = 0;
     int read = 0;
-    int commit = 0;
     for(StepExecution stepExecution : jobExecution.getStepExecutions()) {
       write += stepExecution.getWriteCount();
       read += stepExecution.getReadCount();
-      stepExecution.getCommitCount();
     }
     log.info("##### statistics #####");
     log.info("#####   read: {}", read);
     log.info("#####  write: {}", write);
     log.info("#######################");
+
+    assertThat(write, is(read));
   }
 }

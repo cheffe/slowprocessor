@@ -1,5 +1,8 @@
 package com.github.cheffe.slowprocessor;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.BatchStatus;
@@ -19,11 +22,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class CSVIteamReader implements Tasklet, StepExecutionListener {
 
+  @Value("${batch-size}")
+  private int batchSize;
+
   @Autowired
   private FlatFileItemReader<InputItem> itemReader;
 
   @Autowired
-  private BlockingQueue<InputItem> readQueue;
+  private BlockingQueue<List<InputItem>> readQueue;
 
   @Override
   public void beforeStep(StepExecution stepExecution) {
@@ -36,12 +42,19 @@ public class CSVIteamReader implements Tasklet, StepExecutionListener {
   @Override
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
     log.debug("execute");
+    List<InputItem> batch = new ArrayList<>(batchSize);
     for (InputItem item = itemReader.read(); item != null; item = itemReader.read()) {
-      log.trace("put item {}", item);
-      readQueue.put(item);
+      log.trace("add item {} to batch", item);
+      batch.add(item);
       contribution.incrementReadCount();
+
+      if(batch.size() == batchSize) {
+        readQueue.put(batch);
+        batch = new ArrayList<>(batchSize);
+      }
     }
-    readQueue.put(new InputItem.QueueEnd());
+    readQueue.put(batch);
+    readQueue.put(Collections.emptyList());
     log.debug("execute - COMPLETED");
     contribution.setExitStatus(ExitStatus.COMPLETED);
     return RepeatStatus.FINISHED;

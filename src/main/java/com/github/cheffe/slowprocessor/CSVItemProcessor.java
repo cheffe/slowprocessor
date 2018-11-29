@@ -1,6 +1,6 @@
 package com.github.cheffe.slowprocessor;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ public class CSVItemProcessor implements Tasklet, StepExecutionListener {
   private TaggingService taggingService;
 
   @Autowired
-  private BlockingQueue<InputItem> inputItems;
+  private BlockingQueue<List<InputItem>> inputItems;
   @Autowired
   private BlockingQueue<OutputItem> outputItems;
 
@@ -41,38 +41,32 @@ public class CSVItemProcessor implements Tasklet, StepExecutionListener {
   @Override
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
     log.debug("execute");
-    List<InputItem> stash = new ArrayList<>(batchSize);
-    for (InputItem item = inputItems.take(); !(item instanceof InputItem.QueueEnd); item = inputItems.take()) {
-      log.trace("stashing {}", item);
-      stash.add(item);
-      if(stash.size() == batchSize) {
-        handleStash(stash);
-      }
+    for (List<InputItem> items = inputItems.take(); items.size() > 0; items = inputItems.take()) {
+      handleBatch(items);
     }
-    inputItems.put(new InputItem.QueueEnd());
-    handleStash(stash);
+    inputItems.put(Collections.emptyList());
     outputItems.put(new OutputItem.QueueEnd());
     log.debug("execute - COMPLETED");
     return RepeatStatus.FINISHED;
   }
 
-  private void handleStash(List<InputItem> stash) throws InterruptedException {
-    if(stash.isEmpty()) {
+  private void handleBatch(List<InputItem> batch) throws InterruptedException {
+    if(batch.isEmpty()) {
       return;
     }
-    List<TaggingResponse> responses = taggingService.analyze(stash);
-    for (int i = 0; i < stash.size(); i++) {
-      log.trace("processing {}", stash.get(i));
+    List<TaggingResponse> responses = taggingService.analyze(batch);
+    for (int i = 0; i < batch.size(); i++) {
+      log.trace("processing {}", batch.get(i));
       OutputItem outItem = new OutputItem();
-      outItem.setId(stash.get(i).getId());
-      outItem.setTitle(stash.get(i).getTitle());
+      outItem.setId(batch.get(i).getId());
+      outItem.setTitle(batch.get(i).getTitle());
 
       outItem.setTags(responses.get(i).getTags());
       outItem.setWords(responses.get(i).getWords());
 
       outputItems.put(outItem);
     }
-    stash.clear();
+    batch.clear();
   }
 
   @Override
